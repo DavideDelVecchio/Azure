@@ -82,11 +82,39 @@ yum -y install realmd
 yum -y install sssd
 yum -y install sssd-client
 yum -y install krb5-workstation krb5-libs
+yum -y install openldap-clients
+yum -y install adcli
 yum -y install policycoreutils-python
+
 
 os=""
 release=""
 findOsVersion
+
+# in CentOS7, tell NetworkManager not to overwrite /etc/resolv.conf
+if [ "$major_release" = "7" ]; then
+    cp -f nwnodns.conf /etc/NetworkManager/conf.d/
+    systemctl restart NetworkManager.service
+fi
+
+cp -f resolv.conf /etc/resolv.conf
+replace_ad_params /etc/resolv.conf
+cp -f ntp.conf /etc/ntp.conf
+replace_ad_params /etc/ntp.conf
+
+
+# in CentOS6, prevent /etc/resolv.conf from being overwritten
+cat > /etc/dhcp/dhclient-enter-hooks << EOF
+#!/bin/sh
+make_resolv_conf() {
+echo "do not change resolv.conf"
+}
+EOF
+chmod a+x /etc/dhcp/dhclient-enter-hooks
+
+chmod 600 /etc/sssd/sssd.conf
+service ntpd start
+chkconfig ntpd on
 
 
 
